@@ -18,10 +18,11 @@
 ▶️ Run any app
     Each project is in its own folder. Just navigate into the folder and run the Python script.
     Example:
-     ```bash
-     cd Library_Management_System
-     python library_gui.py
+    ```bash
+    cd Library_Management_System
+    python library_gui.py
 
+    
    
 ## 📁 Dependencies
 Most apps use only:
