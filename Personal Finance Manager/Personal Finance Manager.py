@@ -1,107 +1,151 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox, ttk
 import sqlite3
 from datetime import datetime
+import matplotlib.pyplot as plt
+from collections import defaultdict
 
-# ---------- DATABASE ----------
+# -------------------- Database Setup --------------------
 conn = sqlite3.connect("finance.db")
 cursor = conn.cursor()
 cursor.execute('''CREATE TABLE IF NOT EXISTS transactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    type TEXT,
-    amount REAL,
-    category TEXT,
-    note TEXT,
-    date TEXT
+    type TEXT NOT NULL,
+    category TEXT NOT NULL,
+    amount REAL NOT NULL,
+    date TEXT NOT NULL
 )''')
 conn.commit()
 
-
-# ---------- FUNCTIONS ----------
+# -------------------- Functions --------------------
 def add_transaction():
     t_type = type_var.get()
-    amount = amount_entry.get()
     category = category_entry.get()
-    note = note_entry.get()
-    date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    amount = amount_entry.get()
 
-    if not amount.strip():
-        messagebox.showerror("Error", "Amount is required")
+    if not category or not amount:
+        messagebox.showwarning("Input Error", "Please fill in all fields.")
         return
 
     try:
-        amt = float(amount)
-        cursor.execute("INSERT INTO transactions (type, amount, category, note, date) VALUES (?, ?, ?, ?, ?)",
-                       (t_type, amt, category, note, date))
-        conn.commit()
-        messagebox.showinfo("Success", f"{t_type} added.")
-        refresh_table()
-        clear_fields()
-    except:
-        messagebox.showerror("Error", "Enter a valid number for amount")
+        amount = float(amount)
+    except ValueError:
+        messagebox.showerror("Invalid Input", "Amount must be a number.")
+        return
 
-def refresh_table():
-    for row in tree.get_children():
-        tree.delete(row)
-    cursor.execute("SELECT * FROM transactions ORDER BY date DESC")
-    balance = 0
-    for row in cursor.fetchall():
-        tid, ttype, amount, cat, note, date = row
-        balance += amount if ttype == "Income" else -amount
-        tree.insert('', tk.END, values=(ttype, f"₹{amount:.2f}", cat, note, date))
-    balance_label.config(text=f"💰 Current Balance: ₹{balance:.2f}")
-
-def clear_fields():
-    amount_entry.delete(0, tk.END)
+    date = datetime.now().strftime("%Y-%m-%d")
+    cursor.execute("INSERT INTO transactions (type, category, amount, date) VALUES (?, ?, ?, ?)",
+                   (t_type, category, amount, date))
+    conn.commit()
     category_entry.delete(0, tk.END)
-    note_entry.delete(0, tk.END)
+    amount_entry.delete(0, tk.END)
+    refresh_transactions()
+    update_balance()
 
-# ---------- GUI ----------
+def refresh_transactions():
+    for row in transaction_tree.get_children():
+        transaction_tree.delete(row)
+    cursor.execute("SELECT type, category, amount, date FROM transactions ORDER BY date DESC")
+    for row in cursor.fetchall():
+        transaction_tree.insert("", tk.END, values=row)
+
+def update_balance():
+    cursor.execute("SELECT type, amount FROM transactions")
+    income = sum(row[1] for row in cursor.fetchall() if row[0] == "Income")
+    cursor.execute("SELECT type, amount FROM transactions")
+    expense = sum(row[1] for row in cursor.fetchall() if row[0] == "Expense")
+    balance = income - expense
+    balance_var.set(f"Balance: ₹{balance:.2f}  |  Income: ₹{income:.2f}  |  Expense: ₹{expense:.2f}")
+
+def show_monthly_summary():
+    now = datetime.now()
+    this_month = now.strftime("%Y-%m")
+    cursor.execute("SELECT type, amount, date FROM transactions WHERE strftime('%Y-%m', date) = ?", (this_month,))
+    totals = defaultdict(float)
+    for ttype, amount, _ in cursor.fetchall():
+        totals[ttype] += amount if ttype == "Income" else -amount
+
+    income = totals.get("Income", 0)
+    expense = abs(totals.get("Expense", 0))
+
+    fig, ax = plt.subplots()
+    ax.bar(["Income", "Expense"], [income, expense], color=["green", "red"])
+    ax.set_title(f"Monthly Summary - {this_month}")
+    ax.set_ylabel("Amount (₹)")
+    plt.tight_layout()
+    plt.show()
+
+def show_expense_pie_chart():
+    now = datetime.now()
+    this_month = now.strftime("%Y-%m")
+    cursor.execute("SELECT category, amount FROM transactions WHERE type='Expense' AND strftime('%Y-%m', date) = ?", (this_month,))
+    data = cursor.fetchall()
+    category_totals = defaultdict(float)
+
+    for category, amount in data:
+        category_totals[category] += amount
+
+    if category_totals:
+        labels = list(category_totals.keys())
+        sizes = list(category_totals.values())
+
+        fig, ax = plt.subplots()
+        ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
+        ax.axis('equal')
+        plt.title(f"Expense Breakdown - {this_month}")
+        plt.tight_layout()
+        plt.show()
+    else:
+        messagebox.showinfo("No Data", "No expense data available for this month.")
+
+# -------------------- GUI Setup --------------------
 root = tk.Tk()
-root.title("💼 Personal Finance Manager")
+root.title("💸 Personal Finance Manager")
 root.geometry("700x600")
-root.config(bg="#f8f9fa")
+root.config(bg="#f7faff")
 
-tk.Label(root, text="Add Transaction", bg="#f8f9fa", fg="#343a40", font=("Arial", 16, "bold")).pack(pady=10)
+# Title
+tk.Label(root, text="📊 Personal Finance Dashboard", font=("Arial", 20, "bold"), bg="#f7faff").pack(pady=10)
 
-form_frame = tk.Frame(root, bg="#f8f9fa")
-form_frame.pack(pady=10)
-
-# Type
-tk.Label(form_frame, text="Type", bg="#f8f9fa").grid(row=0, column=0)
-type_var = tk.StringVar(value="Income")
-ttk.Combobox(form_frame, textvariable=type_var, values=["Income", "Expense"], state="readonly").grid(row=1, column=0, padx=10)
-
-# Amount
-tk.Label(form_frame, text="Amount", bg="#f8f9fa").grid(row=0, column=1)
-amount_entry = tk.Entry(form_frame)
-amount_entry.grid(row=1, column=1, padx=10)
-
-# Category
-tk.Label(form_frame, text="Category", bg="#f8f9fa").grid(row=0, column=2)
-category_entry = tk.Entry(form_frame)
-category_entry.grid(row=1, column=2, padx=10)
-
-# Note
-tk.Label(form_frame, text="Note", bg="#f8f9fa").grid(row=0, column=3)
-note_entry = tk.Entry(form_frame)
-note_entry.grid(row=1, column=3, padx=10)
-
-# Buttons
-tk.Button(root, text="Add", bg="#198754", fg="white", font=("Arial", 10, "bold"),
-          command=add_transaction).pack(pady=5)
-
-# TreeView
-columns = ("Type", "Amount", "Category", "Note", "Date")
-tree = ttk.Treeview(root, columns=columns, show="headings", height=12)
-for col in columns:
-    tree.heading(col, text=col)
-    tree.column(col, width=100)
-tree.pack(pady=10)
-
-# Balance
-balance_label = tk.Label(root, text="💰 Current Balance: ₹0.00", bg="#f8f9fa", fg="#212529", font=("Arial", 14, "bold"))
+# Balance Label
+balance_var = tk.StringVar()
+balance_label = tk.Label(root, textvariable=balance_var, font=("Arial", 14), bg="#f7faff", fg="#0d6efd")
 balance_label.pack(pady=10)
 
-refresh_table()
+# Show Graph Buttons
+tk.Button(root, text="📈 Show Monthly Summary", bg="#0d6efd", fg="white",
+          font=("Arial", 10, "bold"), command=show_monthly_summary).pack(pady=5)
+
+tk.Button(root, text="🥧 Expense Breakdown (Pie Chart)", bg="#6c63ff", fg="white",
+          font=("Arial", 10, "bold"), command=show_expense_pie_chart).pack(pady=5)
+
+# Transaction Entry Frame
+entry_frame = tk.Frame(root, bg="#f7faff")
+entry_frame.pack(pady=10)
+
+type_var = tk.StringVar(value="Expense")
+tk.OptionMenu(entry_frame, type_var, "Income", "Expense").grid(row=0, column=0, padx=10)
+category_entry = tk.Entry(entry_frame, width=20)
+category_entry.grid(row=0, column=1, padx=10)
+category_entry.insert(0, "Category")
+
+amount_entry = tk.Entry(entry_frame, width=15)
+amount_entry.grid(row=0, column=2, padx=10)
+amount_entry.insert(0, "Amount")
+
+tk.Button(entry_frame, text="Add Transaction", bg="#28a745", fg="white",
+          command=add_transaction).grid(row=0, column=3, padx=10)
+
+# Transactions Table
+columns = ("Type", "Category", "Amount", "Date")
+transaction_tree = ttk.Treeview(root, columns=columns, show="headings")
+for col in columns:
+    transaction_tree.heading(col, text=col)
+    transaction_tree.column(col, width=150)
+transaction_tree.pack(pady=20)
+
+# Initialize
+refresh_transactions()
+update_balance()
+
 root.mainloop()
