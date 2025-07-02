@@ -21,6 +21,20 @@ To provide a simple yet effective platform for users to manage their personal fi
 
 ---
 
+## **📸 Screenshots**
+
+### 🏠 Dashboard / Main Window 
+<img width="526" alt="Screenshot 2025-07-02 225214" src="https://github.com/user-attachments/assets/8db48e4e-9eab-4ca5-ace6-8e23c99131c5" />
+
+### 📊 Expense Breakdown (Pie Chart)  
+
+<img width="484" alt="Screenshot 2025-07-02 225227" src="https://github.com/user-attachments/assets/bb895d68-3d1e-4bc8-afa6-11cb14a6b312" />
+
+### 📈 Monthly Summary (Bar Graph)  
+<img width="482" alt="Screenshot 2025-07-02 225240" src="https://github.com/user-attachments/assets/0979f67e-2621-411d-9843-3f6008712d4f" />
+
+---
+
 ## **🧰 Built With**
 
 - **Python 3.8+**
@@ -72,6 +86,5 @@ This application is ideal for:
 
 For queries, collaborations, or feedback:  
 📧 **vtu22714@veltech.edu.in**
-```
 
 ---
