@@ -1,7 +1,3 @@
-
----
-
-```markdown
 ## **📘 About the Project: Personal Finance Manager**
 
 The **Personal Finance Manager** is a user-friendly desktop application built using **Python** and **Tkinter**, designed to help individuals track income, manage expenses, and monitor savings effortlessly.
