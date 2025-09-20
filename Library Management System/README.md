@@ -23,8 +23,8 @@ This is a simple and functional **Library Management System** built using **Pyth
 ---
 
 
-````markdown
-## **🖥️ How to Run**
+````
+## 🖥️ How to Run
 
 1. **Navigate to the folder:**
 
