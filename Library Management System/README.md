@@ -23,13 +23,14 @@ This is a simple and functional **Library Management System** built using **Pyth
 ---
 
 
-````
+---
 ## 🖥️ How to Run
 
 1. **Navigate to the folder:**
 
 ```bash
 cd Library_Management_System
+
 ````
 
 2. **Run the Python script:**
